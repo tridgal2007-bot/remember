@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+  <meta content="#071b2b" name="theme-color"/>
+  <meta content="Relatos Engarrafados &mdash; S&oacute; se vive uma vez." name="description"/>
+  <title>
+   Relatos Engarrafados
+  </title>
+  <link href="css/styles.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <div class="gate" id="gate">
+   <div class="gate-box">
+    <svg aria-hidden="true" class="gate-wheel" viewbox="0 0 100 100">
+     <circle cx="50" cy="50" fill="none" r="38" stroke="currentColor" stroke-width="3">
+     </circle>
+     <circle cx="50" cy="50" fill="none" r="8" stroke="currentColor" stroke-width="3">
+     </circle>
+     <g stroke="currentColor" stroke-linecap="round" stroke-width="3">
+      <path d="M50 4v30M50 66v30M4 50h30M66 50h30M17 17l21 21M62 62l21 21M83 17L62 38M38 62L17 83">
+      </path>
+     </g>
+    </svg>
+    <div class="eyebrow">
+     Uma mensagem atravessou o oceano
+    </div>
+    <h1>
+     Relatos
+     <em>
+      Engarrafados
+     </em>
+    </h1>
+    <p>
+     Algumas coisas n&atilde;o foram feitas para ficar em terra firme.
+     <br/>
+     Digite a palavra de acesso para abrir as garrafas.
+    </p>
+    <form class="gate-form" id="gateForm">
+     <label class="sr" for="password">
+      Senha de acesso
+     </label>
+     <input autocomplete="off" id="password" placeholder="Palavra de acesso" required="" type="password"/>
+     <button type="submit">
+      Entrar
+     </button>
+    </form>
+    <div aria-live="polite" class="gate-error" id="gateError">
+    </div>
+   </div>
+  </div>
+  <div class="app hidden" id="app">
+   <header class="topbar">
+    <a class="brand" href="#inicio">
+     <svg aria-hidden="true" class="brand-wheel" viewbox="0 0 100 100">
+      <circle cx="50" cy="50" fill="none" r="38" stroke="currentColor" stroke-width="3">
+      </circle>
+      <circle cx="50" cy="50" fill="none" r="8" stroke="currentColor" stroke-width="3">
+      </circle>
+      <g stroke="currentColor" stroke-linecap="round" stroke-width="3">
+       <path d="M50 4v30M50 66v30M4 50h30M66 50h30M17 17l21 21M62 62l21 21M83 17L62 38M38 62L17 83">
+       </path>
+      </g>
+     </svg>
+     <span>
+      <span class="brand-name">
+       Relatos Engarrafados
+      </span>
+      <span class="brand-sub">
+       S&oacute; se vive uma vez
+      </span>
+     </span>
+    </a>
+    <div class="top-right">
+     <div class="clock">
+      <span id="clock">
+       00:00:00
+      </span>
+      <small id="date">
+      </small>
+     </div>
+     <button aria-pressed="false" class="sound-btn" id="soundBtn" type="button">
+      <span class="sound-dot">
+      </span>
+      <span class="sound-text" id="soundLabel">
+       Trilha sonora
+      </span>
+      <span aria-hidden="true">
+       ♫
+      </span>
+     </button>
+    </div>
+   </header>
+   <section class="hero" id="inicio">
+    <div class="hero-content">
+     <div class="kicker">
+      Coordenadas desconhecidas &middot; Mem&oacute;rias &agrave; deriva
+     </div>
+     <h2>
+      Relatos
+      <span>
+       Engarrafados
+      </span>
+     </h2>
+     <div class="hero-line">
+     </div>
+     <div class="hero-phrase">
+      S&oacute; se vive uma vez.
+     </div>
+     <p class="hero-copy">
+      H&aacute; mensagens que atravessam mares inteiros. Outras ficam guardadas numa garrafa, esperando algu&eacute;m encontrar.
+     </p>
+     <a class="primary" href="#garrafas">
+      Navegar pelos relatos
+      <span>
+       &nearrow;
+      </span>
+     </a>
+    </div>
+    <img alt="Papagaio pirata mascote dos Relatos Engarrafados" class="hero-mascot" src="image/papagaio.webp"/>
+    <div class="mascot-callout" id="parrotGreeting">
+     Ahoy! Encontrei algumas garrafas por aqui. Quer abrir uma?
+    </div>
+    <div class="sea-edge">
+     <div class="wave">
+     </div>
+     <div class="wave">
+     </div>
+     <div class="wave">
+     </div>
+    </div>
+   </section>
+   <main class="main" id="garrafas">
+    <div class="section-heading">
+     <div>
+      <div class="section-label">
+       Mapa de navega&ccedil;&atilde;o
+      </div>
+      <h2>
+       Garrafas &agrave; deriva
+      </h2>
+     </div>
+     <p>
+      Escolha uma garrafa. O papagaio anuncia o que foi encontrado e o relato aparece na carta de leitura.
+     </p>
+    </div>
+    <section aria-label="Cole&ccedil;&atilde;o de relatos" class="route-panel">
+     <div class="route-toolbar">
+      <div aria-label="Filtrar relatos" class="filters" role="group">
+       <button class="filter active" data-filter="all" type="button">
+        Todas as garrafas
+       </button>
+       <button class="filter" data-filter="sofi" type="button">
+        Sofi
+       </button>
+       <button class="filter" data-filter="manu" type="button">
+        Manu
+       </button>
+       <button class="filter" data-filter="pessoal" type="button">
+        Pessoais
+       </button>
+      </div>
+      <div class="route-count" id="count">
+       18 garrafas
+      </div>
+     </div>
+     <div class="bottle-grid" id="bottleGrid">
+     </div>
+     <div class="parrot-announce">
+      <img alt="Papagaio mascote" src="image/papagaio.webp"/>
+      <p>
+       <strong>
+        O papagaio anuncia
+       </strong>
+       <span id="parrotMessage">
+        &ldquo;Arrr! Tem hist&oacute;rias que o mar n&atilde;o deixou afundar.&rdquo;
+       </span>
+      </p>
+     </div>
+    </section>
+    <section class="letter-section" id="carta">
+     <article class="letter-card">
+      <div class="letter-label">
+       Mensagem encontrada &middot; Para Sophia
+      </div>
+      <h2>
+       Caso voc&ecirc; receba isso um dia...
+      </h2>
+      <p>
+       Caso voc&ecirc; receba isso um dia, n&atilde;o sei tamb&eacute;m. Acho que vou confiar este site ao meu amigo de outro continente, o Steve. Doidera kkkkkkk.
+      </p>
+      <p>
+       Caso receba e n&atilde;o se importe com o que eu penso, e me queira na sua vida, me manda algo. At&eacute; um &ldquo;Oi&rdquo;. Se essa mensagem nunca chegar, ou voc&ecirc; nunca a receber, ou o Steve nunca te mandar, se cuida.
+      </p>
+      <p>
+       Lembrem-se de respeitar esse espa&ccedil;o. Ele &eacute; privado. N&atilde;o quero que seja exposto por falar sobre o que sinto. Sou bem problem&aacute;tico e nem eu entendo meu c&eacute;rebro.
+      </p>
+     </article>
+     <form class="reply-card" id="replyForm">
+      <h3>
+       Uma garrafa para responder
+      </h3>
+      <p class="hint">
+       Caso Sophia encontre este site e queira deixar uma mensagem, pode escrever aqui.
+      </p>
+      <label class="sr" for="reply">
+       Sua mensagem
+      </label>
+      <textarea id="reply" name="message" placeholder="Escreva sua mensagem..." required=""></textarea>
+      <div class="send-row">
+       <button class="primary" type="submit">
+        Enviar mensagem &nearrow;
+       </button>
+       <span aria-live="polite" role="status" class="reply-status" id="replyStatus">
+       </span>
+      </div>
+      <p class="hint">
+       Sua resposta &eacute; enviada pelo pr&oacute;prio site, sem abrir aplicativo de e-mail.
+      </p>
+     </form>
+    </section>
+    <details class="about">
+     <summary>
+      Sobre quem escreveu
+     </summary>
+     <div class="about-card">
+      <div class="about-item">
+       <span>
+        Nome
+       </span>
+       <strong>
+        Matheus Soares da Concei&ccedil;&atilde;o
+       </strong>
+      </div>
+      <div class="about-item">
+       <span>
+        Nascimento
+       </span>
+       <strong>
+        09 de novembro de 2007
+       </strong>
+      </div>
+      <div class="about-item">
+       <span>
+        Naturalidade
+       </span>
+       <strong>
+        Salvador, Bahia
+       </strong>
+      </div>
+      <div class="about-item">
+       <span>
+        Telefone
+       </span>
+       <strong>
+        (75) 98146-1557
+       </strong>
+      </div>
+      <div class="about-item">
+       <span>
+        CPF
+       </span>
+       <strong>
+        123.505----
+       </strong>
+      </div>
+     </div>
+    </details>
+   </main>
+   <footer class="footer">
+    <strong>
+     S&oacute; se vive uma vez.
+    </strong>
+    Relatos Engarrafados &middot; Fim da rota, n&atilde;o das hist&oacute;rias.
+   </footer>
+  </div>
+  <div aria-hidden="true" class="weather" id="weather">
+   <div class="storm-flash">
+   </div>
+   <svg class="bolt" preserveaspectratio="none" viewbox="0 0 120 650">
+    <path d="M78 0L40 170L73 170L20 360L57 325L35 520L96 278L62 286L100 105Z">
+    </path>
+    <path d="M55 290L7 350L0 420M71 168L110 215L116 282">
+    </path>
+   </svg>
+  </div>
+  <div aria-hidden="true" class="modal" id="modal">
+   <div aria-labelledby="modalTitle" aria-modal="true" class="modal-card" role="dialog">
+    <div class="modal-art">
+     <img alt="" id="modalImg" src="image/image1.png"/>
+    </div>
+    <div class="modal-copy">
+     <div class="modal-top">
+      <span id="modalCategory">
+       GARRAFA 01
+      </span>
+      <button aria-label="Fechar" class="close" id="closeModal" type="button">
+       &times;
+      </button>
+     </div>
+     <h2 id="modalTitle">
+     </h2>
+     <div class="modal-body" id="modalBody">
+     </div>
+     <div class="modal-nav">
+      <button id="prev" type="button">
+       &larr; Anterior
+      </button>
+      <button id="next" type="button">
+       Pr&oacute;xima &rarr;
+      </button>
+     </div>
+    </div>
+   </div>
+  </div>
+  <audio id="music" loop="" preload="none">
+  </audio>
+  <script src="js/config.js">
+  </script>
+  <script src="js/data/memories.js">
+  </script>
+  <script src="js/app.js">
+  </script>
+ </body>
+</html>
+
