@@ -344,8 +344,8 @@
   // RESPOSTA DA SOPHIA — ENVIO DIRETO PELO FORMULÁRIO (SEM MAILTO)
   // ---------------------------------------------------------------------------
 
-// ENVIO DIRETO DE MENSAGENS — RELATOS ENGARRAFADOS
-const replyForm = document.getElementById("replyForm");
+  // ENVIO DIRETO DE MENSAGENS — RELATOS ENGARRAFADOS
+ const replyForm = document.getElementById("replyForm");
 
 replyForm.addEventListener("submit", async (event) => {
     event.preventDefault();
