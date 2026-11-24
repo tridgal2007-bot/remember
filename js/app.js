@@ -1,26 +1,37 @@
+
 /*
  * RELATOS ENGARRAFADOS — LÓGICA DO SITE
- *
- * Edite os textos em js/data/memories.js.
- * Edite senha, e-mail, música e clima em js/config.js.
- * Edite o visual em css/styles.css.
  */
+
 (() => {
   'use strict';
 
-  const CONFIG = window.RELATOS_CONFIG;
-  const memories = window.RELATOS_MEMORIES;
+  const $ = (selector) => document.querySelector(selector);
+  const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
-  if (!CONFIG || !Array.isArray(memories)) {
-    console.error('Não foi possível carregar config.js ou memories.js.');
+  const CONFIG = window.RELATOS_CONFIG;
+
+  const memories = Array.isArray(window.RELATOS_MEMORIES)
+    ? window.RELATOS_MEMORIES
+    : [];
+
+  if (!CONFIG) {
+    console.error('Erro ao carregar config.js.');
+
+    const error = $('#gateError');
+    if (error) error.textContent = 'Erro ao carregar as configurações do site.';
+
     return;
   }
 
-  // ---------------------------------------------------------------------------
-  // ELEMENTOS E ESTADO
-  // ---------------------------------------------------------------------------
-  const $ = (selector) => document.querySelector(selector);
-  const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+  // ============================================================
+  // ELEMENTOS
+  // ============================================================
+
+  const gate = $('#gate');
+  const app = $('#app');
+  const passwordField = $('#password');
+  const gateError = $('#gateError');
 
   const grid = $('#bottleGrid');
   const modal = $('#modal');
@@ -28,52 +39,163 @@
   const music = $('#music');
   const soundButton = $('#soundBtn');
 
-  const categoryLabels = CONFIG.categoryLabels;
+  const categoryLabels = CONFIG.categoryLabels || {};
 
   let currentFilter = 'all';
   let activeMemoryId = null;
   let previousFocus = null;
+
   let weatherTimer = null;
   let clockTimer = null;
   let weatherIndex = 0;
 
   const formatId = (id) => String(id).padStart(2, '0');
 
-  const initialParrotMessage = $('#parrotMessage');
-  if (initialParrotMessage) {
-    initialParrotMessage.textContent = `“${CONFIG.parrotGreeting}”`;
+  // ============================================================
+  // TELA DE SENHA
+  // ============================================================
+
+  function startClock() {
+    if (clockTimer) clearInterval(clockTimer);
+
+    updateClock();
+
+    clockTimer = setInterval(() => {
+      if (!document.hidden) updateClock();
+    }, 1000);
   }
 
-  // ---------------------------------------------------------------------------
-  // PAPAGAIO — ANÚNCIO DOS RELATOS
-  // ---------------------------------------------------------------------------
+  function startWeather() {
+    if (!weather) return;
+
+    createWeatherParticles();
+
+    const modes = CONFIG.weatherModes || [
+      'sun',
+      'rain',
+      'storm',
+      'snow'
+    ];
+
+    if (!modes.length) return;
+
+    weatherIndex = 0;
+    weather.className = `weather ${modes[weatherIndex]} active`;
+
+    if (weatherTimer) clearInterval(weatherTimer);
+
+    weatherTimer = setInterval(() => {
+      if (document.hidden) return;
+
+      weatherIndex = (weatherIndex + 1) % modes.length;
+
+      weather.className =
+        `weather ${modes[weatherIndex]} active`;
+
+    }, CONFIG.weatherInterval || 25000);
+  }
+
+  $('#gateForm')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!passwordField || !gate || !app) {
+      if (gateError) {
+        gateError.textContent =
+          'Não foi possível abrir o site. Atualize a página.';
+      }
+
+      return;
+    }
+
+    const password = passwordField.value
+      .trim()
+      .toLocaleLowerCase('pt-BR');
+
+    const acceptedPasswords = Array.isArray(CONFIG.passwords)
+      ? CONFIG.passwords.map(value =>
+          String(value).trim().toLocaleLowerCase('pt-BR')
+        )
+      : [];
+
+    if (!acceptedPasswords.includes(password)) {
+      if (gateError) {
+        gateError.textContent =
+          'Palavra incorreta. Tente novamente.';
+      }
+
+      passwordField.focus();
+      return;
+    }
+
+    if (gateError) gateError.textContent = '';
+
+    // LIBERA A PÁGINA
+    gate.classList.add('hidden');
+    app.classList.remove('hidden');
+
+    startClock();
+    startWeather();
+
+    // Música
+    if (music) {
+      try {
+        await music.play();
+        setSoundState(true);
+      } catch {
+        setSoundState(false);
+      }
+    }
+  });
+
+  // ============================================================
+  // PAPAGAIO
+  // ============================================================
+
+  const initialParrotMessage = $('#parrotMessage');
+
+  if (initialParrotMessage) {
+    initialParrotMessage.textContent =
+      `“${CONFIG.parrotGreeting || ''}”`;
+  }
+
   function parrotAnnounce(message) {
-    const messageElement = $('#parrotMessage');
-    if (messageElement) {
-      messageElement.textContent = `“${message}”`;
+    const element = $('#parrotMessage');
+
+    if (element) {
+      element.textContent = `“${message}”`;
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // GARRAFAS — LISTAGEM, FILTROS E ABERTURA
-  // ---------------------------------------------------------------------------
+  // ============================================================
+  // GARRAFAS
+  // ============================================================
+
   function createBottle(memory, index) {
     const bottle = document.createElement('button');
-    const category = categoryLabels[memory.category] || 'Relato';
+
+    const category =
+      categoryLabels[memory.category] || 'Relato';
 
     bottle.type = 'button';
     bottle.className = 'memory-bottle';
-    bottle.style.animationDelay = `${Math.min(index * 25, 300)}ms`;
+
+    bottle.style.animationDelay =
+      `${Math.min(index * 25, 300)}ms`;
+
     bottle.setAttribute(
       'aria-label',
       `Abrir garrafa ${formatId(memory.id)}: ${memory.title}`
     );
 
     bottle.innerHTML = `
-      <span class="bottle-seal">${formatId(memory.id)}</span>
+      <span class="bottle-seal">
+        ${formatId(memory.id)}
+      </span>
+
       <span class="bottle-visual">
         <span class="bottle-neck"></span>
         <span class="bottle-outline"></span>
+
         <img
           src="image/image${memory.id}.png"
           alt="Imagem do relato ${formatId(memory.id)}"
@@ -81,15 +203,27 @@
           decoding="async"
         >
       </span>
+
       <span class="bottle-name"></span>
-      <span class="bottle-meta">${category} · abrir garrafa</span>
+
+      <span class="bottle-meta">
+        ${category} · abrir garrafa
+      </span>
     `;
 
-    bottle.querySelector('.bottle-name').textContent = memory.title;
-    bottle.querySelector('img').addEventListener('error', (event) => {
-      event.currentTarget.style.opacity = '0';
+    bottle.querySelector('.bottle-name').textContent =
+      memory.title;
+
+    bottle.querySelector('img').addEventListener(
+      'error',
+      (event) => {
+        event.currentTarget.style.opacity = '0';
+      }
+    );
+
+    bottle.addEventListener('click', () => {
+      openMemory(memory.id, bottle);
     });
-    bottle.addEventListener('click', () => openMemory(memory.id, bottle));
 
     return bottle;
   }
@@ -98,60 +232,102 @@
     if (!grid) return;
 
     const visibleMemories = memories.filter((memory) => {
-      return currentFilter === 'all' || memory.category === currentFilter;
+      return (
+        currentFilter === 'all' ||
+        memory.category === currentFilter
+      );
     });
 
     grid.replaceChildren(
-      ...visibleMemories.map((memory, index) => createBottle(memory, index))
+      ...visibleMemories.map((memory, index) =>
+        createBottle(memory, index)
+      )
     );
 
     const count = $('#count');
+
     if (count) {
-      const noun = visibleMemories.length === 1 ? 'garrafa' : 'garrafas';
-      count.textContent = `${visibleMemories.length} ${noun}`;
+      const noun =
+        visibleMemories.length === 1
+          ? 'garrafa'
+          : 'garrafas';
+
+      count.textContent =
+        `${visibleMemories.length} ${noun}`;
     }
   }
 
   function setFilter(button) {
     $$('.filter').forEach((filterButton) => {
       const isActive = filterButton === button;
+
       filterButton.classList.toggle('active', isActive);
-      filterButton.setAttribute('aria-pressed', String(isActive));
+
+      filterButton.setAttribute(
+        'aria-pressed',
+        String(isActive)
+      );
     });
 
     currentFilter = button.dataset.filter || 'all';
+
     renderMemories();
   }
 
   $$('.filter').forEach((button) => {
-    button.addEventListener('click', () => setFilter(button));
+    button.addEventListener('click', () => {
+      setFilter(button);
+    });
   });
 
+  // ============================================================
+  // ABRIR RELATOS
+  // ============================================================
+
   function openMemory(id, focusTarget = document.activeElement) {
-    const memory = memories.find((item) => item.id === id);
+    const memory = memories.find(item => item.id === id);
+
     if (!memory || !modal) return;
 
     activeMemoryId = id;
     previousFocus = focusTarget;
 
-    $('#modalImg').src = `image/image${memory.id}.png`;
-    $('#modalImg').alt = `Imagem do relato: ${memory.title}`;
+    $('#modalImg').src =
+      `image/image${memory.id}.png`;
+
+    $('#modalImg').alt =
+      `Imagem do relato: ${memory.title}`;
+
     $('#modalCategory').textContent =
-      `GARRAFA ${formatId(memory.id)} · ${categoryLabels[memory.category] || 'Relato'}`;
+      `GARRAFA ${formatId(memory.id)} · ${
+        categoryLabels[memory.category] || 'Relato'
+      }`;
+
     $('#modalTitle').textContent = memory.title;
+
     $('#modalBody').innerHTML = memory.body;
 
-    $('#prev').disabled = id <= Math.min(...memories.map((item) => item.id));
-    $('#next').disabled = id >= Math.max(...memories.map((item) => item.id));
+    $('#prev').disabled =
+      id <= Math.min(...memories.map(item => item.id));
+
+    $('#next').disabled =
+      id >= Math.max(...memories.map(item => item.id));
 
     modal.classList.add('open');
+
     modal.setAttribute('aria-hidden', 'false');
+
     document.body.style.overflow = 'hidden';
+
     $('#closeModal').focus();
 
-    const announcement = CONFIG.parrotOpenMessage
+    const announcement = (
+      CONFIG.parrotOpenMessage ||
+      'Encontrei a garrafa {id}: {title}.'
+    )
       .replace('{id}', formatId(memory.id))
       .replace('{title}', memory.title);
+
     parrotAnnounce(announcement);
   }
 
@@ -159,242 +335,383 @@
     if (!modal) return;
 
     modal.classList.remove('open');
+
     modal.setAttribute('aria-hidden', 'true');
+
     document.body.style.overflow = '';
 
-    if (previousFocus && typeof previousFocus.focus === 'function') {
+    if (
+      previousFocus &&
+      typeof previousFocus.focus === 'function'
+    ) {
       previousFocus.focus();
     }
   }
 
-  $('#closeModal')?.addEventListener('click', closeMemory);
+  $('#closeModal')?.addEventListener(
+    'click',
+    closeMemory
+  );
+
   modal?.addEventListener('click', (event) => {
-    if (event.target === modal) closeMemory();
+    if (event.target === modal) {
+      closeMemory();
+    }
   });
 
   $('#prev')?.addEventListener('click', () => {
     const previous = memories
-      .filter((item) => item.id < activeMemoryId)
+      .filter(item => item.id < activeMemoryId)
       .sort((a, b) => b.id - a.id)[0];
-    if (previous) openMemory(previous.id);
+
+    if (previous) {
+      openMemory(previous.id);
+    }
   });
 
   $('#next')?.addEventListener('click', () => {
     const next = memories
-      .filter((item) => item.id > activeMemoryId)
+      .filter(item => item.id > activeMemoryId)
       .sort((a, b) => a.id - b.id)[0];
-    if (next) openMemory(next.id);
+
+    if (next) {
+      openMemory(next.id);
+    }
   });
 
   document.addEventListener('keydown', (event) => {
     if (!modal?.classList.contains('open')) return;
 
     if (event.key === 'Escape') closeMemory();
-    if (event.key === 'ArrowLeft') $('#prev')?.click();
-    if (event.key === 'ArrowRight') $('#next')?.click();
-  });
 
-  // ---------------------------------------------------------------------------
-  // TELA DE ENTRADA
-  // ---------------------------------------------------------------------------
-  $('#gateForm')?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-
-    const password = $('#password').value.trim().toLocaleLowerCase('pt-BR');
-    const acceptedPasswords = CONFIG.passwords.map((value) =>
-      String(value).toLocaleLowerCase('pt-BR')
-    );
-
-    if (!acceptedPasswords.includes(password)) {
-      $('#gateError').textContent = 'Palavra incorreta. Tente novamente.';
-      return;
+    if (event.key === 'ArrowLeft') {
+      $('#prev')?.click();
     }
 
-    $('#gate').classList.add('hidden');
-    $('#app').classList.remove('hidden');
-
-    startClock();
-    startWeather();
-
-    try {
-      await music.play();
-      setSoundState(true);
-    } catch {
-      setSoundState(false);
+    if (event.key === 'ArrowRight') {
+      $('#next')?.click();
     }
   });
 
-  // ---------------------------------------------------------------------------
+  // ============================================================
   // RELÓGIO
-  // ---------------------------------------------------------------------------
+  // ============================================================
+
   function updateClock() {
     const now = new Date();
-    $('#clock').textContent = now.toLocaleTimeString('pt-BR', { hour12: false });
-    $('#date').textContent = now.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short'
-    });
-  }
 
-  function startClock() {
-    if (clockTimer) clearInterval(clockTimer);
-    updateClock();
-    clockTimer = setInterval(() => {
-      if (!document.hidden) updateClock();
-    }, 1000);
-  }
+    const clock = $('#clock');
+    const date = $('#date');
 
-  // ---------------------------------------------------------------------------
-  // MÚSICA
-  // ---------------------------------------------------------------------------
-  music.src = CONFIG.musicPath;
-  music.volume = Number.isFinite(CONFIG.musicVolume)
-    ? Math.min(1, Math.max(0, CONFIG.musicVolume))
-    : 0.12;
-
-  function setSoundState(isPlaying) {
-    soundButton.setAttribute('aria-pressed', String(isPlaying));
-    $('#soundLabel').textContent = isPlaying ? 'Música ligada' : 'Trilha sonora';
-  }
-
-  soundButton?.addEventListener('click', async () => {
-    if (music.paused) {
-      try {
-        await music.play();
-        setSoundState(true);
-      } catch {
-        setSoundState(false);
-        $('#soundLabel').textContent = 'Adicione sound/musica.mp3';
-      }
-      return;
+    if (clock) {
+      clock.textContent = now.toLocaleTimeString(
+        'pt-BR',
+        { hour12: false }
+      );
     }
 
-    music.pause();
+    if (date) {
+      date.textContent = now.toLocaleDateString(
+        'pt-BR',
+        {
+          day: '2-digit',
+          month: 'short'
+        }
+      );
+    }
+  }
+
+  // ============================================================
+  // MÚSICA
+  // ============================================================
+
+  if (music) {
+    music.src = CONFIG.musicPath || '';
+
+    music.volume = Number.isFinite(CONFIG.musicVolume)
+      ? Math.min(1, Math.max(0, CONFIG.musicVolume))
+      : 0.12;
+  }
+
+  function setSoundState(isPlaying) {
+    soundButton?.setAttribute(
+      'aria-pressed',
+      String(isPlaying)
+    );
+
+    const label = $('#soundLabel');
+
+    if (label) {
+      label.textContent = isPlaying
+        ? 'Música ligada'
+        : 'Trilha sonora';
+    }
+  }
+
+  soundButton?.addEventListener(
+    'click',
+    async () => {
+      if (!music) return;
+
+      if (music.paused) {
+        try {
+          await music.play();
+          setSoundState(true);
+        } catch {
+          setSoundState(false);
+
+          const label = $('#soundLabel');
+
+          if (label) {
+            label.textContent = 'Adicione sound/musica.mp3';
+          }
+        }
+
+        return;
+      }
+
+      music.pause();
+      setSoundState(false);
+    }
+  );
+
+  music?.addEventListener('error', () => {
     setSoundState(false);
   });
 
-  music.addEventListener('error', () => setSoundState(false));
-  music.addEventListener('play', () => setSoundState(true));
-  music.addEventListener('pause', () => setSoundState(false));
+  music?.addEventListener('play', () => {
+    setSoundState(true);
+  });
 
-  // ---------------------------------------------------------------------------
-  // CLIMA — CAMADA VISUAL SOBRE A INTERFACE
-  // ---------------------------------------------------------------------------
-  const weatherModes = CONFIG.weatherModes || ['sun', 'rain', 'storm', 'snow'];
+  music?.addEventListener('pause', () => {
+    setSoundState(false);
+  });
+
+  // ============================================================
+  // CLIMA
+  // ============================================================
 
   function createWeatherParticles() {
     if (!weather) return;
 
-    weather.querySelectorAll('.rain-drop, .snowflake').forEach((particle) => {
-      particle.remove();
-    });
+    weather.querySelectorAll(
+      '.rain-drop, .snowflake'
+    ).forEach(particle => particle.remove());
 
-    const isMobile = window.matchMedia('(max-width: 700px)').matches;
+    const isMobile =
+      window.matchMedia('(max-width: 700px)').matches;
+
     const rainCount = isMobile ? 18 : 34;
     const snowCount = isMobile ? 18 : 35;
 
-    for (let index = 0; index < rainCount; index += 1) {
+    for (let index = 0; index < rainCount; index++) {
       const drop = document.createElement('i');
+
       drop.className = 'rain-drop';
-      drop.style.setProperty('--x', `${Math.random() * 100}%`);
-      drop.style.setProperty('--h', `${22 + Math.random() * 55}px`);
-      drop.style.setProperty('--dur', `${0.7 + Math.random() * 0.9}s`);
-      drop.style.setProperty('--delay', `${-Math.random() * 4}s`);
-      drop.style.setProperty('--op', 0.15 + Math.random() * 0.26);
+
+      drop.style.setProperty(
+        '--x',
+        `${Math.random() * 100}%`
+      );
+
+      drop.style.setProperty(
+        '--h',
+        `${22 + Math.random() * 55}px`
+      );
+
+      drop.style.setProperty(
+        '--dur',
+        `${0.7 + Math.random() * 0.9}s`
+      );
+
+      drop.style.setProperty(
+        '--delay',
+        `${-Math.random() * 4}s`
+      );
+
+      drop.style.setProperty(
+        '--op',
+        0.15 + Math.random() * 0.26
+      );
+
       weather.appendChild(drop);
     }
 
-    for (let index = 0; index < snowCount; index += 1) {
+    for (let index = 0; index < snowCount; index++) {
       const flake = document.createElement('i');
+
       flake.className = 'snowflake';
-      flake.style.setProperty('--x', `${Math.random() * 100}%`);
-      flake.style.setProperty('--s', `${2 + Math.random() * 4}px`);
-      flake.style.setProperty('--dur', `${9 + Math.random() * 13}s`);
-      flake.style.setProperty('--delay', `${-Math.random() * 12}s`);
-      flake.style.setProperty('--drift', `${(Math.random() - 0.5) * 90}px`);
+
+      flake.style.setProperty(
+        '--x',
+        `${Math.random() * 100}%`
+      );
+
+      flake.style.setProperty(
+        '--s',
+        `${2 + Math.random() * 4}px`
+      );
+
+      flake.style.setProperty(
+        '--dur',
+        `${9 + Math.random() * 13}s`
+      );
+
+      flake.style.setProperty(
+        '--delay',
+        `${-Math.random() * 12}s`
+      );
+
+      flake.style.setProperty(
+        '--drift',
+        `${(Math.random() - 0.5) * 90}px`
+      );
+
       weather.appendChild(flake);
     }
   }
 
   function changeWeather() {
-    if (!weather || !weatherModes.length) return;
-    weatherIndex = (weatherIndex + 1) % weatherModes.length;
-    weather.className = `weather ${weatherModes[weatherIndex]} active`;
-  }
+    const modes = CONFIG.weatherModes || [
+      'sun',
+      'rain',
+      'storm',
+      'snow'
+    ];
 
-  function startWeather() {
-    if (!weather) return;
+    if (!weather || !modes.length) return;
 
-    createWeatherParticles();
-    weatherIndex = 0;
-    weather.className = `weather ${weatherModes[weatherIndex]} active`;
+    weatherIndex = (weatherIndex + 1) % modes.length;
 
-    if (weatherTimer) clearInterval(weatherTimer);
-    weatherTimer = setInterval(() => {
-      if (!document.hidden) changeWeather();
-    }, CONFIG.weatherInterval);
+    weather.className =
+      `weather ${modes[weatherIndex]} active`;
   }
 
   document.addEventListener('visibilitychange', () => {
-    const siteIsVisible = !$('#app').classList.contains('hidden');
-    if (!document.hidden && siteIsVisible && !weatherTimer) startWeather();
+    const siteIsVisible =
+      app && !app.classList.contains('hidden');
+
+    if (
+      !document.hidden &&
+      siteIsVisible &&
+      !weatherTimer
+    ) {
+      startWeather();
+    }
   });
 
-  // ---------------------------------------------------------------------------
-  // RESPOSTA DA SOPHIA — ENVIO DIRETO PELO FORMULÁRIO (SEM MAILTO)
-  // ---------------------------------------------------------------------------
+  // ============================================================
+  // RESPOSTA DA SOPHIA — ENVIO DIRETO PELO SITE
+  // ============================================================
 
-  // ENVIO DIRETO DE MENSAGENS — RELATOS ENGARRAFADOS
- const replyForm = document.getElementById("replyForm");
+  $('#replyForm')?.addEventListener(
+    'submit',
+    async (event) => {
+      event.preventDefault();
 
-replyForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
+      const form = event.currentTarget;
 
-    const message = document.getElementById("reply").value.trim();
-    const status = document.getElementById("replyStatus");
-    const button = replyForm.querySelector('button[type="submit"]');
+      const messageField = $('#reply');
+      const status = $('#replyStatus');
 
-    if (!message) {
-        status.textContent = "Escreva uma mensagem primeiro.";
+      const submitButton = form.querySelector(
+        'button[type="submit"]'
+      );
+
+      const message = messageField.value.trim();
+
+      if (!message) {
+        status.textContent =
+          'Escreva uma mensagem antes de enviar.';
+
+        messageField.focus();
         return;
-    }
+      }
 
-    button.disabled = true;
-    status.textContent = "Enviando mensagem...";
+      if (!CONFIG.replyEmail) {
+        status.textContent =
+          'O endereço de recebimento não foi configurado.';
 
-    try {
+        return;
+      }
+
+      submitButton.disabled = true;
+
+      status.textContent = 'Enviando mensagem…';
+
+      try {
         const response = await fetch(
-            "https://formsubmit.co/ajax/lokiatgardiano@gmail.com",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json"
-                },
-                body: JSON.stringify({
-                    name: "Sophia",
-                    subject: "Nova mensagem — Relatos Engarrafados",
-                    message: message,
-                    _captcha: "false",
-                    _template: "table"
-                })
-            }
+          `https://formsubmit.co/ajax/${CONFIG.replyEmail.trim()}`,
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+
+            body: JSON.stringify({
+              name: 'Sophia',
+              message: message,
+
+              _subject:
+                'Uma mensagem nos Relatos Engarrafados',
+
+              _honey: ''
+            })
+          }
         );
 
-        const result = await response.json();
+        let result = {};
 
-        if (!response.ok || result.success !== "true") {
-            throw new Error("Falha no envio.");
+        try {
+          result = await response.json();
+        } catch {
+          result = {};
         }
 
-        status.textContent = "Mensagem enviada com sucesso!";
-        replyForm.reset();
+        if (
+          !response.ok ||
+          result.success === false
+        ) {
+          throw new Error(
+            result.message ||
+            'O serviço não confirmou o recebimento.'
+          );
+        }
 
-    } catch (error) {
-        status.textContent = "Não foi possível enviar. Tente novamente.";
-        console.error(error);
+        status.textContent =
+          'Mensagem enviada. Obrigado por escrever.';
 
-    } finally {
-        button.disabled = false;
+        messageField.value = '';
+
+        form.classList.add('sent');
+
+      } catch (error) {
+        console.error(
+          'Falha ao enviar a resposta:',
+          error
+        );
+
+        status.textContent =
+          'Não foi possível enviar agora. Verifique a conexão e tente novamente.';
+
+      } finally {
+        submitButton.disabled = false;
+      }
     }
-});
+  );
+
+  // ============================================================
+  // INICIALIZAÇÃO
+  // ============================================================
+
+  if (!Array.isArray(window.RELATOS_MEMORIES)) {
+    console.error(
+      'memories.js não carregou. As garrafas não serão exibidas.'
+    );
+  }
+
+  renderMemories();
+
+})();
